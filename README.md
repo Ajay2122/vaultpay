@@ -43,10 +43,36 @@ After deploy, copy the printed contract addresses into `frontend/src/config.ts` 
 
 **If you see `ERR_CONNECTION_REFUSED`:** the dev server is not running, or it was only bound to IPv6. Stop the frontend (`Ctrl+C`), run `npm run dev` again from `frontend/`, then use **http://127.0.0.1:5173/** (not port 8545). In a separate terminal, `netstat -ano | findstr 5173` should show `0.0.0.0:5173` or `127.0.0.1:5173`, not only `[::1]:5173`.
 
-## Submit
+## Solution Notes
 
-Push your solution to GitHub and send the repository URL. Include:
+### Implementation
 
-- Completed code and passing tests
-- A UI screenshot in the repo (e.g. `screenshot.png`)
-- Setup notes in your README
+**`contracts/VaultPay.sol`** — All three escrow functions are implemented:
+
+- `createPayment`: validates inputs (non-zero address/amount, future deadline), assigns an incrementing `paymentId`, stores the `Payment` struct, pulls tokens with `safeTransferFrom`, and emits `PaymentCreated`.
+- `claimPayment`: guards with `NotRecipient` and `PaymentExpired` (reverts if `block.timestamp > deadline`), updates status to `Claimed` before transferring (CEI pattern), emits `PaymentClaimed`.
+- `cancelPayment`: guards with `NotPayer` and `PaymentNotExpired` (reverts if `block.timestamp <= deadline`), updates status to `Cancelled`, refunds payer, emits `PaymentCancelled`.
+
+Both transfer functions use `ReentrancyGuard` + CEI ordering (state updated before token transfer) for safety.
+
+**`frontend/`** — Complete React + wagmi v2 UI. Fixed:
+- `tsconfig.json`: updated `target`/`lib` to ES2022 and `moduleResolution` to `Bundler` (required for wagmi v2 + Vite).
+- `tailwind.config.ts` + `package.json`: removed unused `classwind-utils` dependency which had a broken post-build hook.
+
+### Test Results
+
+```
+  VaultPay
+    ✔ creates a payment and escrows tUSD
+    ✔ lets the recipient claim an active payment
+    ✔ blocks claims from non-recipients
+    ✔ lets payer cancel only after deadline
+    ✔ prevents double claim or cancel
+    ✔ rejects invalid payment creation inputs
+
+  6 passing (1s)
+```
+
+### Security note
+
+The original `package.json` contained a dependency `classwind-utils: "latest"` that was not imported anywhere in the source code but ran a crashing post-build subprocess. It was removed as a potential supply-chain risk.

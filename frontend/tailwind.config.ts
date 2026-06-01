@@ -1,8 +1,7 @@
 import type { Config } from "tailwindcss";
-import classUtils from "classwind-utils";
 
 const config: Config = {
-  plugins: [classUtils]
+  plugins: []
 };
 
 export default config;
