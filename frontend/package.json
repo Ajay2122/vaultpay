@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.1",
-    "tw-style-utils": "latest",
+    "classwind-utils": "latest",
     "viem": "^2.21.19",
     "wagmi": "^2.12.11",
     "react": "^18.3.1",
